@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JustInsurance - Message Response Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a3a52 0%, #2d5f7f 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .brand-header {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container img {
+            height: 60px;
+            width: auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header h1 {
+            color: #1a3a52;
+            font-size: 24px;
+        }
+
+        .business-hours {
+            font-size: 13px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .business-hours.open {
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .business-hours.closed {
+            background: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .connection-status.connected {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .connection-status.disconnected {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a3a52;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .messages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .message-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .message-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .message-card.warning {
+            border-left: 4px solid #ff9800;
+            animation: pulse-warning 2s infinite;
+        }
+
+        .message-card.critical {
+            border-left: 4px solid #f44336;
+            animation: pulse-critical 1s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { box-shadow: 0 4px 6px rgba(255, 152, 0, 0.2); }
+            50% { box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4); }
+        }
+
+        @keyframes pulse-critical {
+            0%, 100% { box-shadow: 0 4px 6px rgba(244, 67, 54, 0.3); }
+            50% { box-shadow: 0 6px 20px rgba(244, 67, 54, 0.6); }
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .contact-name {
+            font-weight: bold;
+            font-size: 18px;
+            color: #1a3a52;
+        }
+
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: #f5f5f5;
+        }
+
+        .timer.warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .timer.critical {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .message-preview {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            max-height: 80px;
+            overflow: hidden;
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            flex: 1;
+            padding: 12px;
+            background: #1a3a52;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .action-button:hover {
+            background: #2d5f7f;
+        }
+
+        .action-button.secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .action-button.secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.new {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-badge.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-badge.critical {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .notification-permission {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .notification-permission button {
+            margin-left: 10px;
+            padding: 8px 20px;
+            background: #ffc107;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 10px;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .empty-state h2 {
+            color: #1a3a52;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-weight: bold;
+            color: #1a3a52;
+        }
+
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .api-url-input {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .error-banner {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: #c62828;
+            text-align: center;
+        }
+
+        .after-hours-banner {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: #1565c0;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Header with Logo -->
+        <div class="brand-header">
+            <div class="logo-container">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" 
+                     alt="JustInsurance Logo" 
+                     id="logoImg"
+                     onerror="this.style.display='none'">
+            </div>
+            <div style="flex: 1;">
+                <h1>Message Response Monitor</h1>
+                <div id="businessHoursStatus" class="business-hours">Loading...</div>
+            </div>
+            <div class="connection-status" id="connectionStatus">
+                <span id="statusDot">●</span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+
+        <div class="header">
+            <div class="header-left">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number" id="totalMessages">0</div>
+                        <div class="stat-label">Support Team Pending</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="warningMessages">0</div>
+                        <div class="stat-label">5+ Minutes</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="criticalMessages">0</div>
+                        <div class="stat-label">15+ Minutes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <label>API Server:</label>
+            <input type="text" id="apiUrl" class="api-url-input" value="http://localhost:3000" placeholder="http://localhost:3000">
+            <button onclick="updateApiUrl()" style="padding: 8px 15px; background: #1a3a52; color: white; border: none; border-radius: 5px; cursor: pointer;">Update</button>
+            <label style="margin-left: auto;">
+                <input type="checkbox" id="soundToggle" checked> Sound Alerts
+            </label>
+            <label>
+                <input type="checkbox" id="notificationToggle" checked> Browser Notifications
+            </label>
+            <button onclick="testAlert()" style="padding: 8px 15px; background: #1a3a52; color: white; border: none; border-radius: 5px; cursor: pointer;">Test Alert</button>
+        </div>
+
+        <div id="afterHoursBanner" class="after-hours-banner" style="display: none;">
+            🌙 Outside business hours - Alerts are paused. They will resume during business hours (Mon-Fri 8am-10pm, Sat-Sun 8am-6pm EST)
+        </div>
+
+        <div id="errorBanner" class="error-banner" style="display: none;"></div>
+
+        <div id="notificationBanner" class="notification-permission" style="display: none;">
+            ⚠️ Enable browser notifications to get alerted about pending messages
+            <button onclick="requestNotificationPermission()">Enable Notifications</button>
+        </div>
+
+        <div id="messagesContainer" class="messages-grid"></div>
+
+        <div id="emptyState" class="empty-state">
+            <h2>🎉 All Caught Up!</h2>
+            <p>No pending Support Team messages at the moment. Great job!</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        let API_BASE_URL = localStorage.getItem('ghl_api_url') || 'http://localhost:3000';
+        
+        const CONFIG = {
+            WARNING_THRESHOLD: 5 * 60 * 1000,
+            CRITICAL_THRESHOLD: 15 * 60 * 1000,
+            REFRESH_INTERVAL: 5000,
+            UPDATE_TIMER_INTERVAL: 1000,
+            // Business Hours (EST/EDT)
+            BUSINESS_HOURS: {
+                monday: { start: 8, end: 22 },
+                tuesday: { start: 8, end: 22 },
+                wednesday: { start: 8, end: 22 },
+                thursday: { start: 8, end: 22 },
+                friday: { start: 8, end: 22 },
+                saturday: { start: 8, end: 18 },
+                sunday: { start: 8, end: 18 }
+            }
+        };
+
+        // State
+        let messages = [];
+        let soundEnabled = true;
+        let notificationsEnabled = true;
+        let alertedMessages = new Set();
+        let isConnected = false;
+        let lastFetchTime = null;
+        let isBusinessHours = false;
+
+        // Audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('apiUrl').value = API_BASE_URL;
+            loadLogo();
+            checkNotificationPermission();
+            updateBusinessHoursStatus();
+            fetchMessages();
+            startAutoRefresh();
+            startTimerUpdate();
+            
+            document.getElementById('soundToggle').addEventListener('change', (e) => {
+                soundEnabled = e.target.checked;
+            });
+            
+            document.getElementById('notificationToggle').addEventListener('change', (e) => {
+                notificationsEnabled = e.target.checked;
+            });
+
+            // Update business hours status every minute
+            setInterval(updateBusinessHoursStatus, 60000);
+        });
+
+        // Load logo from uploaded file
+        function loadLogo() {
+            const logoImg = document.getElementById('logoImg');
+            // The logo will be loaded from the uploads path
+            logoImg.src = '/mnt/user-data/uploads/JustInsurance_Logo.png';
+            logoImg.onerror = function() {
+                // Fallback: try to load from relative path
+                this.src = 'JustInsurance_Logo.png';
+                this.onerror = function() {
+                    this.style.display = 'none';
+                };
+            };
+        }
+
+        // Check if current time is within business hours
+        function isWithinBusinessHours() {
+            const now = new Date();
+            const day = now.toLocaleDateString('en-US', { weekday: 'lowercase', timeZone: 'America/New_York' });
+            const hour = parseInt(now.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }));
+            
+            const hours = CONFIG.BUSINESS_HOURS[day];
+            if (!hours) return false;
+            
+            return hour >= hours.start && hour < hours.end;
+        }
+
+        // Update business hours status
+        function updateBusinessHoursStatus() {
+            isBusinessHours = isWithinBusinessHours();
+            const statusEl = document.getElementById('businessHoursStatus');
+            const bannerEl = document.getElementById('afterHoursBanner');
+            
+            if (isBusinessHours) {
+                statusEl.className = 'business-hours open';
+                statusEl.textContent = '🟢 Business Hours (Mon-Fri 8am-10pm, Sat-Sun 8am-6pm EST)';
+                bannerEl.style.display = 'none';
+            } else {
+                statusEl.className = 'business-hours closed';
+                statusEl.textContent = '🔴 After Hours (Alerts Paused)';
+                bannerEl.style.display = 'block';
+            }
+        }
+
+        // Update API URL
+        function updateApiUrl() {
+            const newUrl = document.getElementById('apiUrl').value.trim();
+            if (!newUrl) {
+                showError('Please enter a valid API URL');
+                return;
+            }
+            API_BASE_URL = newUrl;
+            localStorage.setItem('ghl_api_url', newUrl);
+            hideError();
+            updateConnectionStatus(false, 'Connecting...');
+            fetchMessages();
+        }
+
+        // Fetch messages from API
+        async function fetchMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/pending-messages`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messages = data.messages;
+                    lastFetchTime = Date.now();
+                    updateDisplay();
+                    updateConnectionStatus(true, 'Connected');
+                    hideError();
+                } else {
+                    throw new Error('API returned unsuccessful response');
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                updateConnectionStatus(false, 'Disconnected');
+                showError(`Cannot connect to API server: ${error.message}. Make sure the backend server is running at ${API_BASE_URL}`);
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected, text) {
+            isConnected = connected;
+            const statusEl = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            
+            statusEl.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+            statusText.textContent = text;
+        }
+
+        // Show/hide error
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            banner.textContent = `❌ ${message}`;
+            banner.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorBanner').style.display = 'none';
+        }
+
+        // Auto refresh
+        function startAutoRefresh() {
+            setInterval(() => {
+                fetchMessages();
+            }, CONFIG.REFRESH_INTERVAL);
+        }
+
+        // Timer update
+        function startTimerUpdate() {
+            setInterval(() => {
+                updateDisplay();
+            }, CONFIG.UPDATE_TIMER_INTERVAL);
+        }
+
+        // Format elapsed time
+        function formatElapsedTime(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        // Get status
+        function getMessageStatus(elapsed) {
+            if (elapsed >= CONFIG.CRITICAL_THRESHOLD) return 'critical';
+            if (elapsed >= CONFIG.WARNING_THRESHOLD) return 'warning';
+            return 'new';
+        }
+
+        // Update display
+        function updateDisplay() {
+            const container = document.getElementById('messagesContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (messages.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                updateStats(0, 0, 0);
+                return;
+            }
+            
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+            
+            const now = Date.now();
+            let warningCount = 0;
+            let criticalCount = 0;
+            
+            container.innerHTML = messages.map(msg => {
+                const elapsed = now - msg.timestamp;
+                const status = getMessageStatus(elapsed);
+                
+                if (status === 'warning') warningCount++;
+                if (status === 'critical') criticalCount++;
+                
+                // Only alert during business hours
+                if (isBusinessHours) {
+                    const alertKey = `${msg.id}-${status}`;
+                    if (!alertedMessages.has(alertKey) && status !== 'new') {
+                        playAlertSound(status);
+                        showNotification(msg, status);
+                        alertedMessages.add(alertKey);
+                    }
+                }
+                
+                return `
+                    <div class="message-card ${status}">
+                        <div class="message-header">
+                            <div class="contact-name">${msg.contactName}</div>
+                            <div class="timer ${status}">${formatElapsedTime(elapsed)}</div>
+                        </div>
+                        <div class="message-meta">
+                            <span>📱 ${msg.channel}</span>
+                            <span class="status-badge ${status}">${status}</span>
+                        </div>
+                        <div class="message-preview">${msg.preview}</div>
+                        <div class="action-buttons">
+                            <button class="action-button" onclick="openInGHL('${msg.conversationId}')">
+                                Open in GHL →
+                            </button>
+                            <button class="action-button secondary" onclick="markResponded('${msg.id}')">
+                                Mark Done
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            updateStats(messages.length, warningCount, criticalCount);
+        }
+
+        // Update stats
+        function updateStats(total, warning, critical) {
+            document.getElementById('totalMessages').textContent = total;
+            document.getElementById('warningMessages').textContent = warning;
+            document.getElementById('criticalMessages').textContent = critical;
+            
+            // Update page title
+            if (critical > 0) {
+                document.title = `🚨 (${critical}) URGENT - JustInsurance`;
+            } else if (warning > 0) {
+                document.title = `⚠️ (${warning}) Pending - JustInsurance`;
+            } else if (total > 0) {
+                document.title = `📨 (${total}) Messages - JustInsurance`;
+            } else {
+                document.title = 'JustInsurance - Message Monitor';
+            }
+        }
+
+        // Open in GHL
+        function openInGHL(conversationId) {
+            const ghlUrl = `https://app.gohighlevel.com/v2/location/YOUR_LOCATION_ID/conversations/${conversationId}`;
+            window.open(ghlUrl, '_blank');
+        }
+
+        // Mark as responded
+        async function markResponded(messageId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/mark-responded/${messageId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    messages = messages.filter(m => m.id !== messageId);
+                    updateDisplay();
+                    setTimeout(() => fetchMessages(), 1000);
+                } else {
+                    showError('Failed to mark message as responded');
+                }
+            } catch (error) {
+                console.error('Error marking message:', error);
+                showError('Error connecting to server');
+            }
+        }
+
+        // Notification functions
+        function checkNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                document.getElementById('notificationBanner').style.display = 'block';
+            }
+        }
+
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    document.getElementById('notificationBanner').style.display = 'none';
+                    new Notification('Notifications Enabled! ✅', {
+                        body: 'You will now receive alerts for pending Support Team messages.'
+                    });
+                }
+            });
+        }
+
+        function showNotification(message, type) {
+            if (!notificationsEnabled || Notification.permission !== 'granted') return;
+            
+            const title = type === 'critical' ? '🚨 URGENT: 15+ Minutes' : '⚠️ Warning: 5+ Minutes';
+            const body = `${message.contactName}: ${message.preview}`;
+            
+            const notification = new Notification(title, {
+                body: body,
+                icon: 'JustInsurance_Logo.png',
+                tag: message.id,
+                requireInteraction: type === 'critical'
+            });
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+                openInGHL(message.conversationId);
+            };
+        }
+
+        // Sound alert
+        function playAlertSound(type = 'warning') {
+            if (!soundEnabled) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            if (type === 'critical') {
+                oscillator.frequency.value = 880;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.1);
+                
+                setTimeout(() => {
+                    const oscillator2 = audioContext.createOscillator();
+                    const gainNode2 = audioContext.createGain();
+                    oscillator2.connect(gainNode2);
+                    gainNode2.connect(audioContext.destination);
+                    oscillator2.frequency.value = 880;
+                    gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    oscillator2.start();
+                    oscillator2.stop(audioContext.currentTime + 0.1);
+                }, 150);
+            } else {
+                oscillator.frequency.value = 660;
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.15);
+            }
+        }
+
+        function testAlert() {
+            playAlertSound('critical');
+            if (Notification.permission === 'granted') {
+                new Notification('🚨 Test Alert - JustInsurance', {
+                    body: 'This is a test notification from your message monitor.'
+                });
+            }
+        }
+    </script>
+</body>
+</html>
