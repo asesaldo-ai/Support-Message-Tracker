@@ -1,3 +1,7 @@
+app.get('/', (req, res) => {
+  res.send('✅ Support Message Tracker backend is running successfully!');
+});
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
